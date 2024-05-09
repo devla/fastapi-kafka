@@ -6,7 +6,6 @@ services:
     container_name: producer
     build:
       context: ./producer
-    # command: ./scripts/run.sh
     volumes:
       - ./producer/src:/app/src
     ports:
@@ -73,16 +72,11 @@ services:
     image: confluentinc/cp-kafka:latest
     hostname: kafka
     container_name: main-kafka
-    # volumes:
-    #   - ./custom-entrypoint.sh:/usr/local/bin/custom-entrypoint.sh
-    #   - ./wait-for-it.sh:/usr/local/bin/wait-for-it.sh
-    # entrypoint: "/usr/local/bin/custom-entrypoint.sh"
     depends_on:
       - zookeeper
     ports:
       - 29092:9092
     environment:
-      # KAFKA_CREATE_TOPICS: "my-topic:1:1"
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
