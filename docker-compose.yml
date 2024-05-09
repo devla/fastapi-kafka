@@ -1,0 +1,118 @@
+version: "3.9"
+
+services:
+  producer:
+    image: producer
+    container_name: producer
+    build:
+      context: ./producer
+    # command: ./scripts/run.sh
+    volumes:
+      - ./producer/src:/app/src
+    ports:
+      - "8000:8000"
+    depends_on:
+      - kafka
+    restart: always
+    networks:
+      - backend
+
+  consumer:
+    image: consumer
+    container_name: consumer
+    build:
+      context: ./consumer
+    command: ./scripts/run.sh
+    volumes:
+      - ./consumer/src:/app/src
+    ports:
+      - "8001:8000"
+    depends_on:
+      - kafka
+      - postgres-db
+    restart: always
+    networks:
+      - backend
+
+  postgres-db:
+    container_name: postgres-db
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: ${DB_USER:-username}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-db_name}
+    ports:
+      - "5433:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - backend
+
+  adminer:
+    container_name: adminer
+    image: adminer:latest
+    ports:
+      - 8081:8080
+    restart: always
+    networks:
+      - backend
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: main-zookeeper
+    ports:
+      - 22181:2181
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - backend
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka
+    container_name: main-kafka
+    # volumes:
+    #   - ./custom-entrypoint.sh:/usr/local/bin/custom-entrypoint.sh
+    #   - ./wait-for-it.sh:/usr/local/bin/wait-for-it.sh
+    # entrypoint: "/usr/local/bin/custom-entrypoint.sh"
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:9092
+    environment:
+      # KAFKA_CREATE_TOPICS: "my-topic:1:1"
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - backend
+    healthcheck:
+      test: nc -z localhost 29092
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    container_name: kafka-ui
+    ports:
+      - 8090:8080
+    restart: always
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
+    links:
+      - kafka
+      - zookeeper
+    networks:
+      - backend
+
+volumes:
+  data:
+
+networks:
+  backend:
+    driver: bridge

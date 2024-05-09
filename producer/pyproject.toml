@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "fastapi-producer"
+version = "0.1.0"
+description = ""
+authors = ["Vladimir Mitrovic <vladimir.mitrovic@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+typer = "^0.12.3"
+faker = "^25.0.1"
+orjson = "^3.10.3"
+aiokafka = "^0.10.0"
+confluent-kafka = "^2.4.0"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.3"
+black = "^24.4.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
