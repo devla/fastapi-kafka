@@ -27,6 +27,3 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 # Copy rest of the code
 COPY . .
-
-# Remove venv directory
-RUN rm -rf venv

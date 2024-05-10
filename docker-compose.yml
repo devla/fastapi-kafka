@@ -23,7 +23,7 @@ services:
       context: ./consumer
     command: ./scripts/run.sh
     volumes:
-      - ./consumer/src:/app/src
+      - ./consumer:/app
     ports:
       - "8001:8000"
     depends_on:
@@ -36,10 +36,7 @@ services:
   postgres-db:
     container_name: postgres-db
     image: postgres:latest
-    environment:
-      POSTGRES_USER: ${DB_USER:-username}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-      POSTGRES_DB: ${DB_NAME:-db_name}
+    env_file: ./consumer/.env
     ports:
       - "5433:5432"
     volumes:
