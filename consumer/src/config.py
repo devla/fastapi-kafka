@@ -20,10 +20,11 @@ class Settings(BaseSettings):
     # Database
     DB_ECHO: bool = False
     DB_FUTURE: bool = True
+    DB_POOL_SIZE: int = 5
 
     # Postgres
-    POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: int = 5433
+    POSTGRES_HOST: str = "postgres-db"
+    POSTGRES_PORT: int = 5432
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
