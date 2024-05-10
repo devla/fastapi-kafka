@@ -2,7 +2,7 @@ import os
 import sys
 import time
 from faker import Faker
-from typer import Typer, prompt, echo
+from typer import Typer, prompt
 from multiprocessing import Pool
 from confluent_kafka import Producer
 import orjson
@@ -14,7 +14,6 @@ producer = Producer({"bootstrap.servers": "kafka:29092"})
 num_cores_to_use = max(os.cpu_count() - 1, 1)
 
 total_messages_failed = 0
-total_messages_sent = 0
 total_time_taken = 0
 chunk = 1
 
@@ -43,19 +42,24 @@ def generate_message(_):
     return orjson.dumps(message)
 
 
+def delivery_callback(err, msg):
+    global total_messages_failed
+    if err is not None:
+        total_messages_failed += 1
+        print("Failed to deliver message with error: %s" % (str(err)))
+
+
 def send_messages(messages):
-    global chunk, producer, total_messages_failed, total_messages_sent
+    global chunk, producer, total_messages_failed
     try:
         for message in messages:
-            producer.produce("my-topic", message)
-        producer.flush()
-        echo(f"Message sent successfully | Chunk: {chunk})")
+            producer.produce("my-topic", key="message", value=message, callback=delivery_callback)
+        producer.poll(1)
+        print(f"Message chunk: {chunk} sent successfully")
         chunk += 1
-        total_messages_sent += len(messages)
         return True
     except Exception as e:
-        echo(f"Error sending message: {e}")
-        total_messages_failed += len(messages)
+        print(f"Error sending message: {e}")
         return False
 
 
@@ -85,26 +89,25 @@ def run():
         except KeyboardInterrupt:
             pass
         finally:
-            report()
+            report(num_messages)
     else:
-        echo("Exiting...")
+        print("Exiting...")
         sys.exit()
 
-    echo("\n\nRe-running...")
+    print("\n\nRe-running...")
     run()
 
 
-def report():
-    echo(f"\nTotal Messages Failed: {total_messages_failed}")
-    echo(f"Total Messages Sent: {total_messages_sent}")
-    echo(f"Total Time Taken: {total_time_taken:.4f} seconds")
+def report(num_messages):
+    print(f"\nTotal Messages Failed: {total_messages_failed}")
+    print(f"Total Messages Sent: {num_messages - total_messages_failed}")
+    print(f"Total Time Taken: {total_time_taken:.4f} seconds")
     reset_counters()
 
 
 def reset_counters():
-    global chunk, total_messages_failed, total_messages_sent, total_time_taken
+    global chunk, total_messages_failed, total_time_taken
     total_messages_failed = 0
-    total_messages_sent = 0
     total_time_taken = 0
     chunk = 1
 
