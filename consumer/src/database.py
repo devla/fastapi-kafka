@@ -15,7 +15,7 @@ async_engine = create_async_engine(
     pool_size=max(5, settings.DB_POOL_SIZE),
 )
 
-SessionLocal = sessionmaker(
+asyncSession = sessionmaker(
     bind=async_engine,
     autocommit=False,
     autoflush=False,
@@ -26,7 +26,7 @@ SessionLocal = sessionmaker(
 
 # Dependency to get a database session per request
 async def get_async_session():
-    async with SessionLocal() as session:
+    async with asyncSession() as session:
         try:
             yield session
         except Exception as e:
