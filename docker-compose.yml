@@ -8,10 +8,8 @@ services:
       context: ./producer
     volumes:
       - ./producer/src:/app/src
-    ports:
-      - "8000:8000"
     depends_on:
-      - kafka
+      - kafka-init
     restart: always
     networks:
       - backend
@@ -25,9 +23,9 @@ services:
     volumes:
       - ./consumer:/app
     ports:
-      - "8001:8000"
+      - "8000:8000"
     depends_on:
-      - kafka
+      - kafka-init
       - postgres-db
     restart: always
     networks:
@@ -85,7 +83,11 @@ services:
     networks:
       - backend
     healthcheck:
-      test: nc -z localhost 29092
+      test: nc -z kafka 29092 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
 
   kafka-ui:
     image: provectuslabs/kafka-ui
@@ -102,6 +104,25 @@ services:
       - zookeeper
     networks:
       - backend
+
+  kafka-init:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka-init
+    networks:
+      - backend
+    command: ["/bin/bash", "-c", "/create_topic.sh && tail -f /dev/null"]
+    environment:
+      - TEST_TOPIC_NAME=my-topic
+      - REPLICATION_FACTOR=1
+      - PARTITIONS=1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ./create_topic.sh
+        target: /create_topic.sh
+    init: true
 
 volumes:
   data:
