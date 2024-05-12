@@ -1,54 +1,103 @@
-import asyncio
+import os
+import time
 import orjson
-from fastapi import BackgroundTasks
-from confluent_kafka import Consumer, KafkaError, KafkaException
-from .config import get_settings
-from .model import Message
+import asyncio
+import threading
+from multiprocessing import Process
+from queue import Queue
+from confluent_kafka import Consumer
+from .config import Settings
 from .database import asyncSession
+from .model import Message
+from .logger import logging as logger
 
-settings = get_settings()
-consumer = Consumer(
-    {
-        "bootstrap.servers": settings.KAFKA_BROKER,
-        "group.id": "fastapi-consumer",
-        "enable.auto.commit": "false",
-        "auto.offset.reset": "earliest",
-    }
-)
+settings = Settings()
 
 
-async def process_message(msg):
-    db_message = Message(key=msg.key().decode("utf-8"), value=orjson.loads(msg.value()))
-    async with asyncSession() as session:
+def _process_msg(q, c):
+    async def process_message(session, msg):
+        db_message = Message(key=msg.key().decode("utf-8"), value=orjson.loads(msg.value()))
+        # async with session() as async_session:
         session.add(db_message)
         await session.commit()
 
+    msg = q.get(timeout=60)  # Set timeout to care for POSIX<3.0 and Windows.
+    logger.info(
+        "#%sT%s - Received message: %s",
+        os.getpid(),
+        threading.get_ident(),
+        msg.value().decode("utf-8"),
+    )
+    session = asyncSession()
+    asyncio.run(process_message(session, msg))
+    q.task_done()
+    c.commit(msg) # @TODO Check if commit works, maybe without msg.
 
-async def consume_messages():
-    msg_count = 0
+
+def _consume(config):
+    logger.info(
+        "#%s - Starting consumer group=%s, topic=%s",
+        os.getpid(),
+        config["kafka_kwargs"]["group.id"],
+        config["topic"],
+    )
+    c = Consumer(**config["kafka_kwargs"])
+    c.subscribe([config["topic"]])
+    q = Queue(maxsize=config["num_threads"])
+
     while True:
-        msg = consumer.poll(timeout=1.0)
-        if msg is None:
-            break
-        if msg.error():
-            if msg.error().code() == KafkaError._PARTITION_EOF:
-                print(
-                    f"%% {msg.topic()} [{msg.partition()}] reached end at offset {msg.offset()}"
-                )
-            elif msg.error():
-                raise KafkaException(msg.error())
-        else:
-            await process_message(msg)
-            consumer.commit(asynchronous=True)
-            msg_count += 1
-            if msg_count >= settings.MSG_COUNT:
-                break
+        if os.getppid() == 1:
+            logger.info("#%s - Parent process terminated, exiting.", os.getpid())
+            break  # Exit if parent process is terminated
+
+        logger.info("#%s - Waiting for message...", os.getpid())
+        try:
+            msg = c.poll(30)
+            if msg is None:
+                logger.info("#%s - No more messages, exiting.", os.getpid())
+                break  # Exit if no more messages
+            if msg.error():
+                logger.error("#%s - Consumer error: %s", os.getpid(), msg.error())
+                continue
+            q.put(msg)
+            t = threading.Thread(target=_process_msg, args=(q, c))
+            t.start()
+        except Exception:
+            logger.exception("#%s - Worker terminated.", os.getpid())
+            c.close()
 
 
-async def consume_loop():
-    background_task = asyncio.create_task(consume_messages())
-    await background_task
+def start_consumer_processes(group_id, topics):
+    logger.info("start_consumer_processes start")
 
+    config = {
+        "num_workers": 4, # @TODO Load this from settings
+        "num_threads": 4, # @TODO also
+        "topic": settings.KAFKA_TOPIC,
+        "kafka_kwargs": {
+            "bootstrap.servers": ",".join(
+                [
+                    settings.KAFKA_BROKER,
+                ]
+            ),
+            "group.id": "fastapi-concurrent-consumer",
+            "auto.offset.reset": "earliest",
+            "enable.auto.commit": False,
+        },
+    }
 
-def start_kafka_consumer(background_tasks: BackgroundTasks):
-    background_tasks.add_task(consume_loop)
+    workers = []
+    try:
+        for _ in range(config["num_workers"]):
+            p = Process(target=_consume, args=(config,))
+            p.start()
+            workers.append(p)
+            logger.info("Starting worker #%s", p.pid)
+
+        while any(p.exitcode is None for p in workers):
+            time.sleep(1)  # Check every second if any worker has exited
+
+    finally:
+        for worker in workers:
+            worker.terminate()  # Terminate remaining workers
+        logger.debug("start_consumer_processes end")
