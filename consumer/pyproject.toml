@@ -12,6 +12,7 @@ sqlmodel = "^0.0.18"
 pydantic-settings = "^2.2.1"
 asyncpg = "^0.29.0"
 confluent-kafka = "^2.4.0"
+gunicorn = "^22.0.0"
 
 
 [build-system]
