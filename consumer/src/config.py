@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,7 +16,9 @@ class Settings(BaseSettings):
 
     # Kafka
     KAFKA_BROKER: str
-    KAFKA_TOPIC: str
+    KAFKA_GROUP_ID: str
+    KAFKA_TOPICS: list
+    KAFKA_NUM_WORKERS: int = max(os.cpu_count() - 1, 1)
 
     # Database
     DB_ECHO: bool = False
@@ -32,6 +35,22 @@ class Settings(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
+    @property
+    def KAFKA_CONFIG(self) -> list:
+        return {
+            "topics": self.KAFKA_TOPICS,
+            "kafka_kwargs": {
+                "bootstrap.servers": ",".join(
+                    [
+                        self.KAFKA_BROKER,
+                    ]
+                ),
+                "group.id": self.KAFKA_GROUP_ID,
+                "auto.offset.reset": "earliest",
+                "enable.auto.commit": False,
+            },
+        }
 
 
 @lru_cache

@@ -25,13 +25,13 @@ async def process_message(msg, consumer):
 
 async def consume_messages(config):
     logger.info(
-        "#%s - Starting consumer group=%s, topic=%s",
+        "#%s - Starting consumer group=%s, topics=%s",
         os.getpid(),
         config["kafka_kwargs"]["group.id"],
-        config["topic"],
+        config["topics"],
     )
     consumer = Consumer(**config["kafka_kwargs"])
-    consumer.subscribe([config["topic"]])
+    consumer.subscribe(config["topics"])
 
     logger.info("#%s - Waiting for message...", os.getpid())
     while True:
@@ -60,30 +60,13 @@ def consume_loop(config):
     asyncio.run(consume_messages(config))
 
 
-def start_consumer_processes(group_id, topics): # @TODO: Topics not used.
+def start_consumer_processes():
     global workers
-
-    # @TODO: Move this all to Settings
-    config = {
-        "num_workers": 4,  # @TODO Load this from settings
-        "num_threads": 4,  # @TODO also
-        "topic": settings.KAFKA_TOPIC,
-        "kafka_kwargs": {
-            "bootstrap.servers": ",".join(
-                [
-                    settings.KAFKA_BROKER,
-                ]
-            ),
-            "group.id": "fastapi-concurrent-consumer",
-            "auto.offset.reset": "earliest",
-            "enable.auto.commit": False,
-        },
-    }
 
     if not workers:
         try:
-            for _ in range(config["num_workers"]):
-                process = Process(target=consume_loop, args=(config,))
+            for _ in range(settings.KAFKA_NUM_WORKERS):
+                process = Process(target=consume_loop, args=(settings.KAFKA_CONFIG,))
                 process.start()
                 workers.append(process)
                 logger.info("Starting worker #%s", process.pid)

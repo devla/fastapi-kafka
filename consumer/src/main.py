@@ -1,4 +1,3 @@
-import os
 from fastapi import FastAPI, BackgroundTasks
 from .kafka import start_consumer_processes
 from .config import Settings
@@ -6,9 +5,6 @@ from .database import create_tables
 
 settings = Settings()
 app = FastAPI()
-
-# @TODO Define in settings.
-num_processes = max(os.cpu_count() - 1, 1)
 
 
 @app.on_event("startup")
@@ -18,10 +14,7 @@ async def startup_event():
 
 @app.get("/start_consumers")
 async def start_consumers(background_tasks: BackgroundTasks):
-    group_id = "fastapi-consumer-processes"  # @TODO define in settings
-    topics = [settings.KAFKA_TOPIC]  # @TODO Make it as List of topics to subscribe to
-
-    background_tasks.add_task(start_consumer_processes, group_id, topics)
+    background_tasks.add_task(start_consumer_processes)
     return {"message": "Kafka consumer processes started."}
 
 
