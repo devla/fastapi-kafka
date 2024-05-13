@@ -53,7 +53,7 @@ def send_messages(messages):
     global chunk, producer, total_messages_failed
     try:
         for message in messages:
-            producer.produce("my-topic", key="message", value=message, callback=delivery_callback)
+            producer.produce("my-topic-1", key="message", value=message, callback=delivery_callback)
         producer.poll(1)
         print(f"Message chunk: {chunk} sent successfully")
         chunk += 1
