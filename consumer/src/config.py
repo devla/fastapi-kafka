@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     KAFKA_BROKER: str
     KAFKA_GROUP_ID: str
     KAFKA_TOPICS: list
+    KAFKA_REPLICATION_FACTOR: int
+    KAFKA_PARTITIONS: int
     KAFKA_NUM_WORKERS: int = max(os.cpu_count() - 1, 1)
 
     # Database

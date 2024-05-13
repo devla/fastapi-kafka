@@ -110,18 +110,15 @@ services:
     container_name: kafka-init
     networks:
       - backend
-    command: ["/bin/bash", "-c", "/create_topic.sh && tail -f /dev/null"]
-    environment:
-      - TEST_TOPIC_NAME=my-topic
-      - REPLICATION_FACTOR=1
-      - PARTITIONS=1
+    command: ["/bin/bash", "-c", "/create_topics.sh && tail -f /dev/null"]
+    env_file: ./consumer/.env
     depends_on:
       kafka:
         condition: service_healthy
     volumes:
       - type: bind
-        source: ./create_topic.sh
-        target: /create_topic.sh
+        source: ./create_topics.sh
+        target: /create_topics.sh
     init: true
 
 volumes:
