@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     # Kafka
     KAFKA_BROKER: str
     KAFKA_TOPIC: str
-    MSG_COUNT: int = 1000
 
     # Database
     DB_ECHO: bool = False

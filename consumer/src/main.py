@@ -3,7 +3,6 @@ from fastapi import FastAPI, BackgroundTasks
 from .kafka import start_consumer_processes
 from .config import Settings
 from .database import create_tables
-from .logger import logging as logger
 
 settings = Settings()
 app = FastAPI()
@@ -19,9 +18,7 @@ async def startup_event():
 
 @app.get("/start_consumers")
 async def start_consumers(background_tasks: BackgroundTasks):
-    logger.debug("start_consumers endpoint start")
-
-    group_id = 'fastapi-consumer-processes' # @TODO define in settings
+    group_id = "fastapi-consumer-processes"  # @TODO define in settings
     topics = [settings.KAFKA_TOPIC]  # @TODO Make it as List of topics to subscribe to
 
     background_tasks.add_task(start_consumer_processes, group_id, topics)
