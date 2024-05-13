@@ -10,7 +10,7 @@ import orjson
 app = Typer()
 faker = Faker()
 
-producer = Producer({"bootstrap.servers": "kafka:29092"})
+producer = Producer({"bootstrap.servers": "kafka1:29091"})
 num_cores_to_use = max(os.cpu_count() - 1, 1)
 
 total_messages_failed = 0
@@ -53,7 +53,7 @@ def send_messages(messages):
     global chunk, producer, total_messages_failed
     try:
         for message in messages:
-            producer.produce("my-topic-1", key="message", value=message, callback=delivery_callback)
+            producer.produce("my-topic-1", value=message, callback=delivery_callback)
         producer.poll(1)
         print(f"Message chunk: {chunk} sent successfully")
         chunk += 1

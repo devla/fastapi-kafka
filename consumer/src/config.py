@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     DEBUG: bool
 
     # Kafka
-    KAFKA_BROKER: str
+    KAFKA_BROKERS: list
     KAFKA_GROUP_ID: str
     KAFKA_TOPICS: list
     KAFKA_REPLICATION_FACTOR: int
@@ -43,11 +43,7 @@ class Settings(BaseSettings):
         return {
             "topics": self.KAFKA_TOPICS,
             "kafka_kwargs": {
-                "bootstrap.servers": ",".join(
-                    [
-                        self.KAFKA_BROKER,
-                    ]
-                ),
+                "bootstrap.servers": ",".join(self.KAFKA_BROKERS),
                 "group.id": self.KAFKA_GROUP_ID,
                 "auto.offset.reset": "earliest",
                 "enable.auto.commit": False,

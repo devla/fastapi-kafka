@@ -54,7 +54,7 @@ services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
-    container_name: main-zookeeper
+    container_name: zookeeper
     ports:
       - 22181:2181
     restart: always
@@ -64,26 +64,73 @@ services:
     networks:
       - backend
 
-  kafka:
+  kafka1:
     image: confluentinc/cp-kafka:latest
-    hostname: kafka
-    container_name: main-kafka
+    container_name: kafka1
+    depends_on:
+      - zookeeper
+    ports:
+      - 29091:9092
+    restart: always
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:29091
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+    networks:
+      - backend
+    healthcheck:
+      test: nc -z kafka1 29091 || exit 1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  kafka2:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka2
     depends_on:
       - zookeeper
     ports:
       - 29092:9092
     restart: always
     environment:
-      KAFKA_BROKER_ID: 1
+      KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
     networks:
       - backend
     healthcheck:
-      test: nc -z kafka 29092 || exit -1
+      test: nc -z kafka2 29092 || exit 1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  kafka3:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka3
+    depends_on:
+      - zookeeper
+    ports:
+      - 29093:9092
+    restart: always
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+    networks:
+      - backend
+    healthcheck:
+      test: nc -z kafka3 29093 || exit 1
       start_period: 15s
       interval: 5s
       timeout: 10s
@@ -97,11 +144,8 @@ services:
     restart: always
     environment:
       - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka1:29091,kafka2:29092,kafka3:29093  # Update with broker hostnames and ports
       - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
-    links:
-      - kafka
-      - zookeeper
     networks:
       - backend
 
@@ -113,7 +157,11 @@ services:
     command: ["/bin/bash", "-c", "/create_topics.sh && tail -f /dev/null"]
     env_file: ./consumer/.env
     depends_on:
-      kafka:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
         condition: service_healthy
     volumes:
       - type: bind

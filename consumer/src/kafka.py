@@ -14,13 +14,14 @@ workers = []
 
 
 async def process_message(msg, consumer):
-    db_message = Message(key=msg.key().decode("utf-8"), value=orjson.loads(msg.value()))
+    db_message = Message(value=orjson.loads(msg.value()))
     async with asyncSession() as session:
         session.add(db_message)
         await session.commit()
         if not session.dirty:
             consumer.commit(msg)
-            logger.info("Message: " + msg.value().decode())
+        else:
+            logger.info("Dirty Message: " + msg.value().decode())
 
 
 async def consume_messages(config):
@@ -54,6 +55,7 @@ async def consume_messages(config):
         except Exception:
             logger.exception("#%s - Worker terminated.", os.getpid())
             consumer.close()
+            break
 
 
 def consume_loop(config):
