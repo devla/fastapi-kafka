@@ -42,7 +42,8 @@ async def create_tables():
     async with async_engine.begin() as connection:
         await connection.run_sync(BaseModel.metadata.create_all)
 
+
 # Run the query to create the uuid-ossp extension
 async def create_uuid_ossp_extension():
     async with async_engine.begin() as connection:
-        await connection.execute(text("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"))
+        await connection.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'))
