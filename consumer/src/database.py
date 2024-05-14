@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -38,5 +39,10 @@ async def get_async_session():
 
 # Define an async function to create tables
 async def create_tables():
-    async with async_engine.begin() as conn:
-        await conn.run_sync(BaseModel.metadata.create_all)
+    async with async_engine.begin() as connection:
+        await connection.run_sync(BaseModel.metadata.create_all)
+
+# Run the query to create the uuid-ossp extension
+async def create_uuid_ossp_extension():
+    async with async_engine.begin() as connection:
+        await connection.execute(text("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"))

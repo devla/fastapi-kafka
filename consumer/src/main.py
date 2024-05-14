@@ -1,7 +1,7 @@
 from fastapi import FastAPI, BackgroundTasks
 from .kafka import start_consumer_processes
 from .config import Settings
-from .database import create_tables
+from .database import create_uuid_ossp_extension, create_tables
 
 settings = Settings()
 app = FastAPI()
@@ -9,6 +9,7 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup_event():
+    await create_uuid_ossp_extension()
     await create_tables()
 
 
