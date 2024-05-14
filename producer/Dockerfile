@@ -30,6 +30,3 @@ COPY . .
 
 # Remove venv directory
 RUN rm -rf venv
-
-# Use sleep infinity to keep the container running
-CMD ["sleep", "infinity"]

@@ -6,6 +6,9 @@ services:
     container_name: producer
     build:
       context: ./producer
+    command: ["/bin/bash", "-c", "read && python src/main.py"]
+    stdin_open: true
+    tty: true
     volumes:
       - ./producer/src:/app/src
     depends_on:
