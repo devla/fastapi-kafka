@@ -5,7 +5,8 @@ services:
     image: producer
     container_name: producer
     build:
-      context: ./producer
+      context: .
+      dockerfile: Dockerfile.producer
     command: ["/bin/bash", "-c", "read && python src/main.py"]
     stdin_open: true
     tty: true
@@ -21,10 +22,11 @@ services:
     image: consumer
     container_name: consumer
     build:
-      context: ./consumer
+      context: .
+      dockerfile: Dockerfile.consumer
     command: ./scripts/run.sh
     volumes:
-      - ./consumer:/app
+      - ./consumer/src:/app/src
     ports:
       - "8000:8000"
     depends_on:
@@ -37,7 +39,7 @@ services:
   postgres-db:
     container_name: postgres-db
     image: postgres:latest
-    env_file: ./consumer/.env
+    env_file: ./.env
     ports:
       - "5433:5432"
     volumes:
@@ -158,7 +160,7 @@ services:
     networks:
       - backend
     command: ["/bin/bash", "-c", "/create_topics.sh && tail -f /dev/null"]
-    env_file: ./consumer/.env
+    env_file: ./.env
     depends_on:
       kafka1:
         condition: service_healthy
