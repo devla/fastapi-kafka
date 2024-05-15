@@ -29,7 +29,7 @@ docker compose up -d
 
 ## Usage
 
-Access to producer service:
+To access the producer service:
 
 ```bash
 docker attach producer
