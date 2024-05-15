@@ -1,17 +1,18 @@
 import os
 import sys
 import time
+import orjson
 from faker import Faker
 from typer import Typer, prompt
 from multiprocessing import Pool
 from confluent_kafka import Producer
-import orjson
+from config import get_settings
 
 app = Typer()
 faker = Faker()
+settings = get_settings()
 
-producer = Producer({"bootstrap.servers": "kafka1:29091"})
-num_cores_to_use = max(os.cpu_count() - 1, 1)
+producer = Producer(**settings.KAFKA_CONFIG["kafka_kwargs"])
 
 total_messages_failed = 0
 total_time_taken = 0
@@ -53,7 +54,7 @@ def send_messages(messages):
     global chunk, producer, total_messages_failed
     try:
         for message in messages:
-            producer.produce("my-topic-1", value=message, callback=delivery_callback)
+            producer.produce(settings.KAFKA_TOPICS[0], value=message, callback=delivery_callback)
         producer.poll(1)
         print(f"Message chunk: {chunk} sent successfully")
         chunk += 1
@@ -66,7 +67,7 @@ def send_messages(messages):
 def produce_messages(num_messages: int, batch_size: int):
     global total_time_taken
     start_time = time.time()
-    with Pool(processes=num_cores_to_use) as pool:
+    with Pool(processes=settings.KAFKA_NUM_WORKERS) as pool:
         for _ in range(0, num_messages, batch_size):
             messages = pool.map(generate_message, range(batch_size))
             send_messages(messages)
