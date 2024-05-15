@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.consumer
-    command: ./scripts/run.sh
+    command: ./scripts/run_single_worker.sh
     volumes:
       - ./consumer/src:/app/src
     ports:
