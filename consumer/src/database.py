@@ -2,8 +2,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
-from .config import get_settings
-from .model import BaseModel
+from config import get_settings
+from model import BaseModel
 
 settings = get_settings()
 

@@ -4,10 +4,10 @@ import orjson
 import asyncio
 from multiprocessing import Process
 from confluent_kafka import Consumer
-from .config import get_settings
-from .database import asyncSession
-from .model import Message
-from .logger import logging as logger
+from config import get_settings
+from database import asyncSession
+from model import Message
+from logger import logging as logger
 
 settings = get_settings()
 workers = []
