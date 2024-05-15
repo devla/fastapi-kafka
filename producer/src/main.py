@@ -53,7 +53,9 @@ def send_messages(messages):
     global chunk, producer, total_messages_failed
     try:
         for message in messages:
-            producer.produce(settings.KAFKA_TOPICS[0], value=message, callback=delivery_callback)
+            producer.produce(
+                settings.KAFKA_TOPICS[0], value=message, callback=delivery_callback
+            )
         producer.poll(1)
         print(f"Message chunk: {chunk} sent successfully")
         chunk += 1
