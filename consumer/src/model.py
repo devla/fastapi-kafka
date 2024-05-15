@@ -16,8 +16,9 @@ class Message(BaseModel, table=True):
             server_default=text("uuid_generate_v4()"),
         )
     )
-    key: str | None = Field(nullable=True)
-    value: dict | None = Field(nullable=True, sa_type=JSONB)
+    key: str | None = None
+    value: dict | None = Field(sa_type=JSONB)
+    headers: dict | None = Field(sa_type=JSONB)
 
     class Config:
         arbitrary_types_allowed = True
