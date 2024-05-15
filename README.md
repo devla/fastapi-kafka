@@ -36,6 +36,12 @@ docker attach producer
 ```
 hit enter twice ;)
 
+To monitor consumer:
+
+```bash
+docker attach consumer
+```
+
 Consumer API is available at [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ## Kafka Configuration
