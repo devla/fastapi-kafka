@@ -11,12 +11,12 @@ class Settings(BaseSettings):
         case_sensitive = True
 
     # Kafka
-    KAFKA_BROKERS: list
-    KAFKA_TOPICS: list
+    KAFKA_BROKERS: list[str]
+    KAFKA_TOPICS: list[str]
     KAFKA_NUM_WORKERS: int = max(os.cpu_count() - 1, 1)
 
     @property
-    def KAFKA_CONFIG(self) -> list:
+    def KAFKA_CONFIG(self) -> dict:
         return {
             "kafka_kwargs": {
                 "bootstrap.servers": ",".join(self.KAFKA_BROKERS),
@@ -25,5 +25,5 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-def get_settings():
+def get_settings() -> Settings:
     return Settings()

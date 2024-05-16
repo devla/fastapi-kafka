@@ -68,12 +68,16 @@ def send_messages(messages):
 def produce_messages(num_messages: int, batch_size: int):
     global total_time_taken
     start_time = time.time()
-    with Pool(processes=settings.KAFKA_NUM_WORKERS) as pool:
-        for _ in range(0, num_messages, batch_size):
-            messages = pool.map(generate_message, range(batch_size))
-            send_messages(messages)
-    end_time = time.time()
-    total_time_taken = end_time - start_time
+    try:
+        with Pool(processes=settings.KAFKA_NUM_WORKERS) as pool:
+            for _ in range(0, num_messages, batch_size):
+                messages = pool.map(generate_message, range(batch_size))
+                send_messages(messages)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        end_time = time.time()
+        total_time_taken = end_time - start_time
 
 
 @app.command()
@@ -86,12 +90,8 @@ def run():
             "Enter the number of messages to produce: ", type=int, default=100
         )
         batch_size = prompt("Enter the batch size: ", type=int, default=10)
-        try:
-            produce_messages(num_messages, batch_size)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            report(num_messages)
+        produce_messages(num_messages, batch_size)
+        report(num_messages)
     else:
         print("Exiting...")
         sys.exit()

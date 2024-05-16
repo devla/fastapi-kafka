@@ -14,52 +14,53 @@ workers = []
 
 
 async def process_message(msg, consumer):
-    db_message = Message(value=orjson.loads(msg.value()))
-    async with asyncSession() as session:
-        session.add(db_message)
-        await session.commit()
-        if not session.dirty:
-            consumer.commit(msg)
-            logger.info(
-                "#%s | Message received",
-                os.getpid(),
-            )
-        else:
-            logger.info("#%s | Dirty Message: " + msg.value().decode())
+    try:
+        db_message = Message(value=orjson.loads(msg.value()))
+        async with asyncSession() as session:
+            session.add(db_message)
+            await session.commit()
+            if not session.dirty:
+                consumer.commit(msg)
+                logger.info("#%s | Message received", os.getpid())
+            else:
+                logger.warning(
+                    "#%s | Dirty Message: %s", os.getpid(), msg.value().decode()
+                )
+    except Exception as e:
+        logger.exception("#%s | Error processing message: %s", os.getpid(), e)
 
 
 async def consume_messages(config):
+    consumer = Consumer(**config["kafka_kwargs"])
+    consumer.subscribe(config["topics"])
     logger.info(
         "#%s | Starting consumer group=%s, topics=%s",
         os.getpid(),
         config["kafka_kwargs"]["group.id"],
         config["topics"],
     )
-    consumer = Consumer(**config["kafka_kwargs"])
-    consumer.subscribe(config["topics"])
 
-    logger.info("#%s | Waiting for message...", os.getpid())
-    while True:
-        if os.getppid() == 1:
-            logger.info("#%s | Parent process terminated, exiting.", os.getpid())
-            break  # Exit if parent process is terminated
+    try:
+        while True:
+            if os.getppid() == 1:
+                logger.info("#%s | Parent process terminated, exiting...", os.getpid())
+                break
 
-        try:
             msg = consumer.poll(30)
             if msg is None:
                 consumer.unsubscribe()
-                logger.info("#%s | No more messages, exiting.", os.getpid())
-                break  # Exit if no more messages
+                logger.info("#%s | No more messages, exiting...", os.getpid())
+                break
             if msg.error():
                 logger.error("#%s | Consumer error: %s", os.getpid(), msg.error())
                 continue
 
             await process_message(msg, consumer)
 
-        except Exception:
-            logger.exception("#%s - Worker terminated.", os.getpid())
-            consumer.close()
-            break
+    except Exception:
+        logger.exception("#%s | Worker terminated due to an exception.", os.getpid())
+    finally:
+        consumer.close()
 
 
 def consume_loop(config):
@@ -78,9 +79,11 @@ def start_consumer_processes():
                 logger.info("#%s | Starting worker", process.pid)
 
             while any(p.exitcode is None for p in workers):
-                time.sleep(1)  # Check every second if any worker has exited
-
+                time.sleep(1)
+        except Exception as e:
+            logger.exception("Error starting consumer processes: %s", e)
         finally:
             for worker in workers:
-                worker.terminate()  # Terminate remaining workers
+                worker.terminate()
+                logger.info("#%s | Worker terminated", worker.pid)
             workers = []

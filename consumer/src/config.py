@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     DEBUG: bool
 
     # Kafka
-    KAFKA_BROKERS: list
+    KAFKA_BROKERS: list[str]
     KAFKA_GROUP_ID: str
-    KAFKA_TOPICS: list
+    KAFKA_TOPICS: list[str]
     KAFKA_REPLICATION_FACTOR: int
     KAFKA_PARTITIONS: int
     KAFKA_NUM_WORKERS: int = max(os.cpu_count() - 1, 1)
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     @property
-    def KAFKA_CONFIG(self) -> list:
+    def KAFKA_CONFIG(self) -> dict:
         return {
             "topics": self.KAFKA_TOPICS,
             "kafka_kwargs": {
@@ -52,5 +52,5 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-def get_settings():
+def get_settings() -> Settings:
     return Settings()

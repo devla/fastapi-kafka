@@ -5,8 +5,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from config import get_settings
 from model import BaseModel
 
+# Load settings
 settings = get_settings()
-
 
 # Create the SQLAlchemy engine
 async_engine = create_async_engine(
