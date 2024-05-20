@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 from config import get_settings
-from model import BaseModel
+from model import SQLModel
 
 # Load settings
 settings = get_settings()
@@ -40,7 +40,7 @@ async def get_async_session():
 # Define an async function to create tables
 async def create_tables():
     async with async_engine.begin() as connection:
-        await connection.run_sync(BaseModel.metadata.create_all)
+        await connection.run_sync(SQLModel.metadata.create_all)
 
 
 # Run the query to create the uuid-ossp extension

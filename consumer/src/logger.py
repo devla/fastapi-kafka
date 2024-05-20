@@ -17,6 +17,13 @@ console_handler = logging.StreamHandler()
 console_handler.setLevel(numeric_log_level)
 console_handler.setFormatter(logging.Formatter(log_format))
 
+# Add a filter to exclude SQLAlchemy logs
+class ExcludeSQLAlchemyFilter(logging.Filter):
+    def filter(self, record):
+        return not record.name.startswith("sqlalchemy")
+
+console_handler.addFilter(ExcludeSQLAlchemyFilter())
+
 # Add handler to the root logger
 logging.getLogger().addHandler(console_handler)
 

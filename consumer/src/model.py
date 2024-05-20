@@ -1,14 +1,9 @@
 from sqlalchemy import Column, text
-from sqlalchemy.orm import registry
 from sqlmodel import SQLModel, Field
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 
-class BaseModel(SQLModel, registry=registry()):
-    pass
-
-
-class Message(BaseModel, table=True):
+class Message(SQLModel, table=True):
     id: UUID = Field(
         sa_column=Column(
             UUID(as_uuid=True),
